@@ -59,7 +59,6 @@ lineupPersonIndex = lineupHeaders.index('"Person_id"')
 lineupTeamIndex = lineupHeaders.index('"Team_id"')
 
 
-
 line = lineup.readline()
 line = line.split()
 
