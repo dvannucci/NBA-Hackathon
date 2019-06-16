@@ -58,9 +58,6 @@ lineupPeriodIndex = lineupHeaders.index('"Period"')
 lineupPersonIndex = lineupHeaders.index('"Person_id"')
 lineupTeamIndex = lineupHeaders.index('"Team_id"')
 
-print("see")
-
-
 line = lineup.readline()
 line = line.split()
 
@@ -81,8 +78,6 @@ while line[lineupPeriodIndex] == "1":
     line = lineup.readline()
     line = line.split()
 
-
-print("yeet")
 
 print("Roster:")
 for x in roster:
