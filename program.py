@@ -9,13 +9,19 @@ class Player:
         self.offPos = 0
         self.defPos = 0
 
-    def offensive(self, points):
+    def offensiveEnd(self, points):
         self.pointsFor += points
         self.offPos += 1
 
-    def defensive(self, points):
+    def defensiveEnd(self, points):
         self.pointsAgainst += points
         self.defPos += 1
+
+    def offensivePoint(self, points):
+        self.pointsFor += points
+
+    def defensivePoint(self, points):
+        self.pointsAgainst += points
 
 
 # Opens all files provided.
@@ -58,25 +64,65 @@ lineupPeriodIndex = lineupHeaders.index('"Period"')
 lineupPersonIndex = lineupHeaders.index('"Person_id"')
 lineupTeamIndex = lineupHeaders.index('"Team_id"')
 
-line = lineup.readline()
-line = line.split()
-
+# These are the two lists needed to keep track of the roster of everyone in the game, as well as everyone on the floor.
 roster = []
 floor = []
 
-# WITHIN THE CASE FOR 12,0 WHICH IS THE START OF THE GAME.
-while line[lineupPeriodIndex] == "0":
-    roster.append(Player(line[lineupTeamIndex], line[lineupPersonIndex]))
-    line = lineup.readline()
-    line = line.split()
+# Reads each line of the plays file until the end. MAIN OUTER LOOP.
+for play in plays:
+    play = play.split()
 
-while line[lineupPeriodIndex] == "1":
-    for x in roster:
-        if x.id == line[lineupPersonIndex]:
-            floor.append(x)
-            break
-    line = lineup.readline()
-    line = line.split()
+# If the messageTypeIndex is equal to "12", then this is the start of a period. This is an administration step which does not deal with any actual basketball plays.
+    if play[messageTypeIndex] == "12":
+# If the period of this play is equal to "1", then this is the start of a new game, so we must change the "game" variable and fill the roster and floor lists appropriately.
+        if play[playsPeriodIndex] == "1":
+            game = play[playsGameIndex]
+# This for loop now goes through the Game_Lineup file.
+            for gameLine in iter(lineup.readline, ''):
+                gameLine = gameLine.split()
+# If the period of the read line is "0", this is showing the players that are present at the game. For each player present, a new object is created with the players id, and the team. The object is then appended to the roster list.
+                if gameLine[lineupPeriodIndex] == "0":
+                    roster.append(Player(gameLine[lineupTeamIndex], gameLine[lineupPersonIndex]))
+# If the period of the read line is "1", these are the players that start on the floor at the beginning of the first quarter. So they must be found on the roster list, and appended to the floor list.
+                elif gameLine[lineupPeriodIndex] == "1":
+                    for x in roster:
+                        if x.id == gameLine[lineupPersonIndex]:
+                            floor.append(x)
+                            break
+# If the period is no longer "0" or "1", then we are finished filling the roster and floor lists, so we put the file cursor back one line so that the next time we read the Game_Lineup file, it will be starting in the correct spot.
+                else:
+                    lineup.seek(previous)
+                    break
+# This is the variable that holds the placement of the previous line in the Game_Lineup file.
+                previous = lineup.tell()
+# If the the period of the play is not equal to "1", then the messageTypeIndex of "12" is referring to the start of a new quarter. There may have been substitutions during the quarter break, so we must go through the Game_Lineup and change the floor list accordingly.
+        else:
+# Assign a variable called period which is the number of the new quarter.
+            period = play[playsPeriodIndex]
+# Delete the old list of the players on the floor.
+            del floor[:]
+# Go through the new players who should be on the floor, find them in the total roster list, and append them the the floor list.
+            for gameLine in iter(lineup.readline, ''):
+                gameLine = gameLine.split()
+# Only do this for as long as the lineup period is the same as the period of the last play.
+                if gameLine[lineupPeriodIndex] == period:
+                    for x in roster:
+                        if x.id == gameLine[lineupPersonIndex]:
+                            floor.append(x)
+                            break
+# Same process as above, we just replace the pointer in the file back a line where it should be for the next iteration of reading the Game_Lineup file.
+                else:
+                    lineup.seek(previous)
+                    break
+
+                previous = lineup.tell()
+
+
+
+
+# This is now the main section which will deal with the various types of plays an scenarios that could happen in the game.
+    if play[messageTypeIndex] == "12":
+    break
 
 
 print("Roster:")
@@ -88,30 +134,3 @@ print("\n\n")
 print("Floor:")
 for z in floor:
     print(z.id)
-
-floor[0].offensive(4)
-
-floor[0] = roster[3]
-
-print("Roster:")
-for x in roster:
-    print(x.id)
-
-print("\n\n")
-
-print("Floor:")
-for z in floor:
-    print(z.id)
-
-print(roster[2].pointsFor)
-print(roster[0].pointsFor)
-
-"""
-# Reads each line of the plays file until the end. MAIN OUTER LOOP
-for line in plays:
-    line = line.split()
-    print(line)
-    game = line[playsGameIndex]
-    print(game)
-    exit(0)
-"""
