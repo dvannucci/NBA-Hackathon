@@ -1,0 +1,12 @@
+if play["Event_Num"] == :
+    print("Floor:")
+    print("\n")
+    for z in floor:
+        print(z.id)
+        print(z.team)
+        print(z.pointsFor)
+        print(z.offPos)
+        print(z.pointsAgainst)
+        print(z.defPos)
+        print("\n")
+    exit(0)
