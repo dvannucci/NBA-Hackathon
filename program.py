@@ -118,9 +118,7 @@ for play in plays:
                 previous = lineup.tell()
 
 
-
-
-# This is now the main section which will deal with the various types of plays an scenarios that could happen in the game.
+# This is now the main section which will deal with the various types of plays and scenarios that could happen in the game.
     if play[messageTypeIndex] == "12":
     break
 
