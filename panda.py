@@ -104,11 +104,13 @@ for game,group in playFile.groupby("Game_id"):
 
 # Now that the roster and floor lists are filled, we go through each play of the game.
     for index,play in sortedGameData.iterrows():
+        
 # This statement only executed when the previous play is a rebound, but not by a player on the floor. It is a team rebound, and we can verify the team since on the following play, the "Team_id" will be who got the previous rebound.
         if needToCheck:
             if play["Team_id"] != teamShot:
                 possessionOnly(teamShot)
             needToCheck = False
+
 # This statement will only execute in the case that "subFreeze" has been set to true, meaning that in one of the most recent plays, there has been a foul called. If this has happened, but the current play is not a free throw, "3", or a substitution, "8", then the freeze is unnecessary, since there is no reason to put off the substitution. So we make the freeze equal to false, and execute any substitutions that were saved in the "heldSubs" list.
         if subFreeze and play["Event_Msg_Type"] != 3 and play["Event_Msg_Type"] != 8:
             subFreeze = False
@@ -187,23 +189,18 @@ for game,group in playFile.groupby("Game_id"):
                             break
                     break
 
+
         elif play["Event_Msg_Type"] == 13:
             possessionOnly(play["Team_id"])
-            print(roster[0].id)
-            print(roster[0].team)
-            print(roster[0].pointsFor)
-            print(roster[0].offPos)
-            print(roster[0].pointsAgainst)
-            print(roster[0].defPos)
-            exit(0)
+
 
         elif play["Event_Msg_Type"] == 16:
-            print(roster[0].id)
-            print(roster[0].team)
-            print(roster[0].pointsFor)
-            print(roster[0].offPos)
-            print(roster[0].pointsAgainst)
-            print(roster[0].defPos)
+            print(roster[1].id)
+            print(roster[1].team)
+            print(roster[1].pointsFor)
+            print(roster[1].offPos)
+            print(roster[1].pointsAgainst)
+            print(roster[1].defPos)
             exit(0)
 
 
