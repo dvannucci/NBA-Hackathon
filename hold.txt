@@ -10,3 +10,15 @@ if play["Event_Num"] == :
         print(z.defPos)
         print("\n")
     exit(0)
+
+
+
+print("Roster:")
+for x in roster:
+    print(x.id)
+
+print("\n\n")
+
+print("Floor:")
+for z in floor:
+    print(z.id)
