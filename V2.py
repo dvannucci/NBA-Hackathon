@@ -6,7 +6,8 @@ class Player:
     def __init__(self, team, id):
         self.team = team
         self.id = id
-        self.pointsFor = 0
+        self.pointsWhileOnFloor = 0
+        self.pointsPersonal = 0
         self.pointsAgainst = 0
         self.offPos = 0
         self.defPos = 0
@@ -23,7 +24,7 @@ class Player:
         self.timeEntered = 0
 
     def offensivePointsAndPossession(self, points):
-        self.pointsFor += points
+        self.pointsWhileOnFloor += points
         self.offPos += 1
 
     def defensivePointsAndPossession(self, points):
@@ -31,7 +32,7 @@ class Player:
         self.defPos += 1
 
     def offensivePoints(self, points):
-        self.pointsFor += points
+        self.pointsWhileOnFloor += points
 
     def defensivePoints(self, points):
         self.pointsAgainst += points
@@ -252,7 +253,7 @@ for game,group in playFile.groupby("Game_id"):
         elif play["Event_Msg_Type"] == 16:
             print(roster[7].id)
             print(roster[7].team)
-            print(roster[7].pointsFor)
+            print(roster[7].pointsWhileOnFloor)
             print(roster[7].offPos)
             print(roster[7].pointsAgainst)
             print(roster[7].defPos)
