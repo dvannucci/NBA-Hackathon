@@ -7,17 +7,21 @@ class Player:
         self.team = team
         self.id = id
         self.pointsWhileOnFloor = 0
-        self.pointsPersonal = 0
         self.pointsAgainst = 0
+        self.pointsPersonal = 0
         self.offPos = 0
         self.defPos = 0
         self.freeThrowsMade = 0
         self.freeThrowsAttempted = 0
         self.fieldGoalsMade = 0
         self.fieldGoalsAttempted = 0
-        self.minutesplayed = 0
+        self.minutesPlayed = 0
         self.assists = 0
+        self.steals = 0
+        self.blocks = 0
+        self.personalFouls = 0
         self.offensiveRebounds = 0
+        self.defensiveRebounds = 0
         self.turnovers = 0
         self.threePointers = 0
         self.quarterEntered = 0
@@ -47,15 +51,29 @@ class Team:
     def __init__(self, team):
         self.team = team
         self.offensiveRebounds = 0
-        self.minutesplayed = 0
+        self.totalRebounds = 0
+        self.minutesPlayed = 0
         self.assists = 0
         self.fieldGoalsMade = 0
         self.fieldGoalsAttempted = 0
-        self.points = 0
+        self.pointsTeam = 0
         self.freeThrowsMade = 0
         self.freeThrowsAttempted = 0
         self.turnovers = 0
         self.threePointers = 0
+        self.scoringPossessions = 0
+        self.offensiveReboundWeight = 0
+        self.offensiveReboundPercentage = 0
+        self.playPercentage = 0
+#Defensive
+        self.defensiveOffensiveReboundPercentage = 0
+        self.defensiveFieldGoalPercentage = 0
+        self.FMWT = 0
+        self.blocks = 0
+        self.steals = 0
+        self.personalFouls = 0
+        self.teamPossessions = 0
+        self.teamDefensiveRating = 0
 
 
 def pointsAndPossession(points):
@@ -78,6 +96,93 @@ def possessionOnly(offensiveTeam):
             player.offensivePossession()
         else:
             player.defensivePossession()
+
+def teamHelper(own, opponent):
+# Offensive stuff
+    teams[own].scoringPossessions = teams[own].fieldGoalsMade + (1 - (1 - (teams[own].freeThrowsMade / teams[own].freeThrowsAttempted))**2) * teams[own].freeThrowsAttempted * 0.4
+
+    teams[own].offensiveReboundPercentage = teams[own].offensiveRebounds / (teams[own].offensiveRebounds + (teams[opponent].totalRebounds - teams[opponent].offensiveRebounds))
+
+    teams[own].playPercentage = teams[own].scoringPossessions / (teams[own].fieldGoalsAttempted + teams[own].freeThrowsAttempted * 0.4 + teams[own].turnovers)
+
+    teams[own].offensiveReboundWeight = ((1 - teams[own].offensiveReboundPercentage) * teams[own].playPercentage) / ((1 - teams[own].offensiveReboundPercentage) * teams[own].playPercentage +  teams[own].offensiveReboundPercentage * (1 - teams[own].playPercentage))
+#Defensive stuff
+    teams[own].defensiveOffensiveReboundPercentage = teams[opponent].offensiveRebounds / (teams[opponent].offensiveRebounds + (teams[own].totalRebounds - teams[own].offensiveRebounds))
+
+    teams[own].defensiveFieldGoalPercentage = teams[opponent].fieldGoalsMade / teams[opponent].fieldGoalsAttempted
+
+    teams[own].FMWT = (teams[own].defensiveFieldGoalPercentage * (1 - teams[own].defensiveOffensiveReboundPercentage)) / (teams[own].defensiveFieldGoalPercentage * (1 - teams[own].defensiveOffensiveReboundPercentage) + (1 - teams[own].defensiveFieldGoalPercentage) * teams[own].defensiveOffensiveReboundPercentage)
+
+    teams[own].teamPossessions =  0.5 * ((teams[own].fieldGoalsAttempted + 0.4 * teams[own].freeThrowsAttempted - 1.07 * (teams[own].offensiveRebounds / (teams[own].offensiveRebounds + (teams[opponent].totalRebounds - teams[opponent].offensiveRebounds))) * (teams[own].fieldGoalsAttempted - teams[own].fieldGoalsMade) + teams[own].turnovers) + (teams[opponent].fieldGoalsAttempted + 0.4 * teams[opponent].freeThrowsAttempted - 1.07 * (teams[opponent].offensiveRebounds / (teams[opponent].offensiveRebounds + (teams[own].totalRebounds - teams[own].offensiveRebounds))) * (teams[opponent].fieldGoalsAttempted - teams[opponent].fieldGoalsMade) + teams[opponent].turnovers))
+
+    teams[own].teamDefensiveRating = 100 * (teams[opponent].pointsTeam / teams[own].teamPossessions)
+
+    teams[own].defensivePointsPerScoringPossession = teams[opponent].pointsTeam / (teams[opponent].fieldGoalsMade + (1 - (1 - (teams[opponent].freeThrowsMade / teams[opponent].freeThrowsAttempted))**2) * teams[opponent].freeThrowsAttempted * 0.4)
+
+
+def teamStats(own):
+    teams[own].minutesPlayed += player.minutesPlayed
+    teams[own].assists += player.assists
+    teams[own].fieldGoalsMade += player.fieldGoalsMade
+    teams[own].fieldGoalsAttempted += player.fieldGoalsAttempted
+    teams[own].pointsTeam += player.pointsPersonal
+    teams[own].freeThrowsMade += player.freeThrowsMade
+    teams[own].freeThrowsAttempted += player.freeThrowsAttempted
+    teams[own].turnovers += player.turnovers
+    teams[own].threePointers += player.threePointers
+    teams[own].blocks += player.blocks
+    teams[own].steals += player.steals
+    teams[own].personalFouls += player.personalFouls
+
+def offensiveRating(own):
+
+    qAst = ((player.minutesPlayed / (teams[own].minutesPlayed / 5)) * (1.14 * ((teams[own].assists - player.assists) / teams[own].fieldGoalsMade))) + ((((teams[own].assists / teams[own].minutesPlayed) * player.minutesPlayed * 5 - player.assists) / ((teams[own].fieldGoalsMade / teams[own].minutesPlayed) * player.minutesPlayed * 5 - player.fieldGoalsMade)) * (1 - (player.minutesPlayed / (teams[own].minutesPlayed / 5))))
+
+    fieldGoalPart = player.fieldGoalsMade * (1 - 0.5 * ((player.pointsPersonal - player.freeThrowsMade) / (2 * player.fieldGoalsAttempted)) * qAst)
+
+    assistPart = 0.5 * (((teams[own].pointsTeam - teams[own].freeThrowsMade) - (player.pointsPersonal - player.freeThrowsMade)) / (2 * (teams[own].fieldGoalsAttempted - player.fieldGoalsAttempted))) * player.assists
+
+    if player.freeThrowsAttempted == 0:
+        freeThrowPart = 0
+        freeThrowsMissedPossessions = 0
+    else:
+        freeThrowPart = (1-(1-(player.freeThrowsMade/player.freeThrowsAttempted))**2)*0.4*player.freeThrowsAttempted
+        freeThrowsMissedPossessions = ((1 - (player.freeThrowsMade / player.freeThrowsAttempted))**2) * 0.4 * player.freeThrowsAttempted
+
+    offensiveReboundPart = player.offensiveRebounds * teams[own].offensiveReboundWeight * teams[own].playPercentage
+
+    scoringPossessions = (fieldGoalPart + assistPart + freeThrowPart) * (1 - (teams[own].offensiveRebounds / teams[own].scoringPossessions) * teams[own].offensiveReboundWeight * teams[own].playPercentage) + offensiveReboundPart
+
+    fieldGoalsMissedPossessions = (player.fieldGoalsAttempted - player.fieldGoalsMade) * (1 - 1.07 * teams[own].offensiveReboundPercentage)
+
+
+
+    totalPossessions = scoringPossessions + fieldGoalsMissedPossessions + freeThrowsMissedPossessions + player.turnovers
+
+
+
+    pointsProducedFieldGoals = 2 * (player.fieldGoalsMade + 0.5 * player.threePointers) * (1 - 0.5 * ((player.pointsPersonal - player.freeThrowsMade) / (2 * player.fieldGoalsAttempted)) * qAst)
+
+    pointsProducedAssists = 2 * ((teams[own].fieldGoalsMade - player.fieldGoalsMade + 0.5 * (teams[own].threePointers - player.threePointers)) / (teams[own].fieldGoalsMade - player.fieldGoalsMade)) * 0.5 * (((teams[own].pointsTeam - teams[own].freeThrowsMade) - (player.pointsPersonal - player.freeThrowsMade)) / (2 * (teams[own].fieldGoalsAttempted - player.fieldGoalsAttempted))) * player.assists
+
+    pointsProducedOffensiveRebounds = player.offensiveRebounds * teams[own].offensiveReboundWeight * teams[own].playPercentage * (teams[own].pointsTeam / (teams[own].fieldGoalsMade + (1 - (1 - (teams[own].freeThrowsMade / teams[own].freeThrowsAttempted))**2) * 0.4 * teams[own].freeThrowsAttempted))
+
+    pointsProduced = (pointsProducedFieldGoals + pointsProducedAssists + player.freeThrowsMade) * (1 - (teams[own].offensiveRebounds / teams[own].scoringPossessions) * teams[own].offensiveReboundWeight * teams[own].playPercentage) + pointsProducedOffensiveRebounds
+
+    return round(100 * (pointsProduced / totalPossessions))
+
+def defensiveRating(own, opponent):
+
+    stopsOne = player.steals + player.blocks * teams[own].FMWT * (1 - 1.07 * teams[own].defensiveOffensiveReboundPercentage) + player.defensiveRebounds * (1 - teams[own].FMWT)
+
+    stopsTwo = (((teams[opponent].fieldGoalsAttempted - teams[opponent].fieldGoalsMade - teams[own].blocks) / teams[own].minutesPlayed) * teams[own].FMWT * (1 - 1.07 * teams[own].defensiveOffensiveReboundPercentage) + ((teams[opponent].turnovers - teams[own].steals) / teams[own].minutesPlayed)) * player.minutesPlayed + (player.personalFouls / teams[own].personalFouls) * 0.4 * teams[opponent].freeThrowsAttempted * (1 - (teams[opponent].freeThrowsMade / teams[opponent].freeThrowsAttempted))**2
+
+
+    stopPercentage = ((stopsOne + stopsTwo) * teams[opponent].minutesPlayed) / (teams[own].teamPossessions * player.minutesPlayed)
+
+
+    return round(teams[own].teamDefensiveRating + 0.2 * (100 * teams[own].defensivePointsPerScoringPossession * (1 - stopPercentage) - teams[own].teamDefensiveRating))
+
 
 
 # Creates a new .csv file and puts it in csv writer mode.
@@ -162,7 +267,24 @@ for game,group in playFile.groupby("Game_id"):
         if play["Event_Msg_Type"] == 12 and play["Period"] > 1:
 # Exact same logic as above when we filled the floor list at the beginning of a game.
             GameLineNewQuarter = lineup.get_group((game, play["Period"]))
-            floor = [athlete for athlete in roster if any(athlete.id == starter["Person_id"] for index,starter in GameLineNewQuarter.iterrows())]
+
+            spots = []
+            hold = [new["Person_id"] for index,new in GameLineNewQuarter.iterrows()]
+
+            for player in floor:
+                if player.id not in hold:
+                    spots.append(floor.index(player))
+                    player.minutesPlayed += (player.timeEntered/600) + ((play["Period"] -player.quarterEntered - 1) * 12)
+
+
+            for index in spots:
+                for player in roster:
+                    if player.id in hold and player not in floor:
+                        floor[index] = player
+                        floor[index].quarterEntered = play["Period"]
+                        floor[index].timeEntered = 7200
+                        break
+
 
 # If the Event_Msg_Type is a "1", then it's a made shot, which is the end of a possession. For every player on the floor, depending on their team, call the function to add to their offensive or defensive stats.
         elif play["Event_Msg_Type"] == 1:
@@ -171,16 +293,20 @@ for game,group in playFile.groupby("Game_id"):
                 if player.id == play["Person1"]:
                     player.fieldGoalsMade += 1
                     player.fieldGoalsAttempted += 1
+                    player.pointsPersonal += play["Option1"]
+                    if play["Option1"] == 3:
+                        player.threePointers += 1
                 if player.id == play["Person2"]:
                     player.assists += 1
 
-# If the short has been missed, we set the variable "teamShot" to the team that took the shot. Since every missed shot is followed by a rebound, we must check on the rebound play if it was an offensive or defensive rebound.
+# If the shot has been missed, we set the variable "teamShot" to the team that took the shot. Since every missed shot is followed by a rebound, we must check on the rebound play if it was an offensive or defensive rebound.
         elif play["Event_Msg_Type"] == 2:
             teamShot = play["Team_id"]
             for player in floor:
                 if player.id == play["Person1"]:
                     player.fieldGoalsAttempted += 1
-                    break
+                elif player.id == play["Person3"]:
+                    player.blocks += 1
 
 # An Event_Msg_Type of "3" is a free throw which has a few different types.
         elif play["Event_Msg_Type"] == 3:
@@ -193,15 +319,18 @@ for game,group in playFile.groupby("Game_id"):
             if play["Action_Type"] == 10 and play["Option1"] == 1:
                 pointsOnly(play["Option1"])
                 player.freeThrowsMade += 1
+                player.pointsPersonal += 1
 # This group will only add points and no possessions since no possession change is possible when there are no rebounds. We must put the "if play["Option1"]" statement inside of the outer if statement because if the free throw is missed, nothing happens to any players points or possessions. If it was on the outside condition, like on the free throws with rebounds in the next "elif", then execution would fall to the "else" statement at the end, and would unnecessarily keep track of the team who shot the free throw.
             elif play["Action_Type"] in freeThrowActionsNoRebound:
                 if play["Option1"] == 1:
                     pointsOnly(play["Option1"])
                     player.freeThrowsMade += 1
+                    player.pointsPersonal += 1
 # This group will add points and possessions if the free throw is made, since rebounds were possible.
             elif play["Action_Type"] in freeThrowActionsRebound and play["Option1"] == 1:
                 pointsAndPossession(play["Option1"])
                 player.freeThrowsMade += 1
+                player.pointsPersonal += 1
 # If all other cases are false, then the only possible thing that could have happened was a missed free throw, that had a possible rebound. If this is the case, we must set the "teamShot" variable to the free throw shooting team, and look to the next play which will be a rebound.
             else:
                 teamShot = play["Team_id"]
@@ -221,13 +350,38 @@ for game,group in playFile.groupby("Game_id"):
 # If the team of the rebounder is different then "teamShot", then the opposing team to the shooting team got the rebound. This results in a possession change, but since no points were scored, we only add the appropriate offensive or defensive possessions to the players on the floor. If the rebounder's team is the same as "teamShot", then this was an offensive rebound, so we can ignore it since no possession changes, and no points were scored.
             elif rebounder.team != teamShot:
                 possessionOnly(teamShot)
+                rebounder.defensiveRebounds += 1
+                for team in teams:
+                    if rebounder.team == team.team:
+                        team.totalRebounds += 1
+                        break
+
+            else:
+                for player in floor:
+                    if player.id == play["Person1"]:
+                        player.offensiveRebounds += 1
+                        for team in teams:
+                            if player.team == team.team:
+                                team.offensiveRebounds += 1
+                                team.totalRebounds += 1
+                                break
+                        break
 
 # If the Event_Msg_Type is a "5", this is a turnover. Therefore, we just add the appropriate possessions to the players on the floor, and no points. Offensive possessions are given to the team that committed the turnover.
         elif play["Event_Msg_Type"] == 5:
             possessionOnly(play["Team_id"])
+            for player in floor:
+                if player.id == play["Person1"]:
+                    player.turnovers += 1
+                elif player.id == play["Person2"]:
+                    player.steals += 1
 
 # If a foul is committed on a play,then we must freeze all substitutions for the time being. If any substitutions are made during free throws, then we must wait until after the free throws go through to before making the substitutions.
         elif play["Event_Msg_Type"] == 6:
+            for player in floor:
+                if player.id == play["Person1"]:
+                    player.personalFouls += 1
+                    break
             subFreeze = True
 
 # If the Event_Msg_Type is an "8", this is a substitution. Person1 is leaving the game, person2 is entering the game.
@@ -236,8 +390,16 @@ for game,group in playFile.groupby("Game_id"):
             for sub in floor:
                 if sub.id == play["Person1"]:
                     spot = floor.index(sub)
+
+                    if sub.quarterEntered == play["Period"]:
+                        sub.minutesPlayed += (sub.timeEntered - play["PC_Time"])/600
+                    else:
+                        sub.minutesPlayed += ((sub.timeEntered/600) + ((play["Period"] - sub.quarterEntered - 1) * 12) + ((7200 - play["PC_Time"])/600))
+
                     for bench in roster:
                         if bench.id == play["Person2"]:
+                            bench.timeEntered = play["PC_Time"]
+                            bench.quarterEntered = play["Period"]
                             if subFreeze:
                                 heldSubs.append([spot,bench])
                             else:
@@ -251,13 +413,88 @@ for game,group in playFile.groupby("Game_id"):
 
 
         elif play["Event_Msg_Type"] == 16:
-            print(roster[7].id)
-            print(roster[7].team)
-            print(roster[7].pointsWhileOnFloor)
-            print(roster[7].offPos)
-            print(roster[7].pointsAgainst)
-            print(roster[7].defPos)
-            print(roster[7].assists)
+
+            for player in floor:
+                if player.quarterEntered == play["Period"]:
+                    player.minutesPlayed += (player.timeEntered - play["PC_Time"])/600
+                else:
+                    player.minutesPlayed += ((player.timeEntered/600) + ((play["Period"] - player.quarterEntered - 1) * 12) + ((7200 - play["PC_Time"])/600))
+
+            for player in roster:
+                if player.team == teams[0].team:
+                    teamStats(0)
+
+                else:
+                    teamStats(1)
+            teams[1].minutesPlayed = 240.0
+
+            teamHelper(0,1)
+
+            teamHelper(1,0)
+
+
+            #print(teams[1].team)
+            #print(teams[1].offensiveRebounds)
+            #print(teams[1].totalRebounds)
+            #print(teams[1].minutesPlayed)
+            #print(teams[1].assists)
+            #print(teams[1].fieldGoalsMade)
+            #print(teams[1].fieldGoalsAttempted)
+            #print(teams[1].pointsTeam)
+            #print(teams[1].freeThrowsMade)
+            #print(teams[1].freeThrowsAttempted)
+            #print(teams[1].turnovers)
+            #print(teams[1].threePointers)
+            #print(teams[1].scoringPossessions)
+            #print(teams[1].offensiveReboundWeight)
+            #print(teams[1].offensiveReboundPercentage)
+            #print(teams[1].playPercentage)
+            #print(teams[1].defensiveOffensiveReboundPercentage)
+            #print(teams[1].defensiveFieldGoalPercentage)
+            #print(teams[1].FMWT)
+            #print(teams[1].blocks)
+            #print(teams[1].steals)
+            #print(teams[1].personalFouls)
+            #print(teams[1].teamPossessions)
+            #print(teams[1].teamDefensiveRating)
+
+
+            #exit(0)
+
+
+
+            for player in roster:
+                if player.minutesPlayed == 0:
+                    output.writerow([play["Game_id"],player.id,"N/A", "N/A"])
+
+                elif player.team == teams[0].team:
+                    output.writerow([play["Game_id"], player.id, offensiveRating(0), defensiveRating(0,1)])
+
+                else:
+                    output.writerow([play["Game_id"], player.id, offensiveRating(1), defensiveRating(1,0)])
+
+            #exit(0)
+            print(roster[26].id)
+            print(roster[26].pointsWhileOnFloor)
+            print(roster[26].pointsAgainst)
+            print(roster[26].pointsPersonal)
+            print(roster[26].offPos)
+            print(roster[26].defPos)
+            print(roster[26].freeThrowsMade)
+            print(roster[26].freeThrowsAttempted)
+            print(roster[26].fieldGoalsMade)
+            print(roster[26].fieldGoalsAttempted)
+            print(roster[26].minutesPlayed)
+            print(roster[26].assists)
+            print(roster[26].steals)
+            print(roster[26].blocks)
+            print(roster[26].personalFouls)
+            print(roster[26].offensiveRebounds)
+            print(roster[26].defensiveRebounds)
+            print(roster[26].turnovers)
+            print(roster[26].threePointers)
+            print(roster[26].quarterEntered)
+            print(roster[26].timeEntered)
             exit(0)
 
 
