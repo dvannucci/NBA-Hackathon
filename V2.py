@@ -115,7 +115,9 @@ def teamHelper(own, opponent):
 
     teams[own].teamPossessions =  0.5 * ((teams[own].fieldGoalsAttempted + 0.4 * teams[own].freeThrowsAttempted - 1.07 * (teams[own].offensiveRebounds / (teams[own].offensiveRebounds + (teams[opponent].totalRebounds - teams[opponent].offensiveRebounds))) * (teams[own].fieldGoalsAttempted - teams[own].fieldGoalsMade) + teams[own].turnovers) + (teams[opponent].fieldGoalsAttempted + 0.4 * teams[opponent].freeThrowsAttempted - 1.07 * (teams[opponent].offensiveRebounds / (teams[opponent].offensiveRebounds + (teams[own].totalRebounds - teams[own].offensiveRebounds))) * (teams[opponent].fieldGoalsAttempted - teams[opponent].fieldGoalsMade) + teams[opponent].turnovers))
 
+
     teams[own].teamDefensiveRating = 100 * (teams[opponent].pointsTeam / teams[own].teamPossessions)
+
 
     teams[own].defensivePointsPerScoringPossession = teams[opponent].pointsTeam / (teams[opponent].fieldGoalsMade + (1 - (1 - (teams[opponent].freeThrowsMade / teams[opponent].freeThrowsAttempted))**2) * teams[opponent].freeThrowsAttempted * 0.4)
 
@@ -179,6 +181,11 @@ def defensiveRating(own, opponent):
 
 
     stopPercentage = ((stopsOne + stopsTwo) * teams[opponent].minutesPlayed) / (teams[own].teamPossessions * player.minutesPlayed)
+
+    if player.id == "44230324724c84f122ac62a5f0918314":
+        print(teams[own].teamDefensiveRating + 0.2 * (100 * teams[own].defensivePointsPerScoringPossession * (1 - stopPercentage) - teams[own].teamDefensiveRating))
+        print(player.steals)
+        exit(0)
 
 
     return round(teams[own].teamDefensiveRating + 0.2 * (100 * teams[own].defensivePointsPerScoringPossession * (1 - stopPercentage) - teams[own].teamDefensiveRating))
@@ -426,11 +433,14 @@ for game,group in playFile.groupby("Game_id"):
 
                 else:
                     teamStats(1)
-            teams[1].minutesPlayed = 240.0
 
             teamHelper(0,1)
 
             teamHelper(1,0)
+
+
+
+
 
 
             #print(teams[1].team)
@@ -462,10 +472,9 @@ for game,group in playFile.groupby("Game_id"):
             #exit(0)
 
 
-
             for player in roster:
                 if player.minutesPlayed == 0:
-                    output.writerow([play["Game_id"],player.id,"N/A", "N/A"])
+                    output.writerow([play["Game_id"], player.id,"N/A", "N/A"])
 
                 elif player.team == teams[0].team:
                     output.writerow([play["Game_id"], player.id, offensiveRating(0), defensiveRating(0,1)])
