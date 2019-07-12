@@ -111,7 +111,7 @@ for game,group in playFile.groupby("Game_id"):
             extraPoss = False
 
         if heatCheck:
-            if play["Event_Msg_Type"] != 9 and play["Event_Msg_Type"] != 8:
+            if play["Event_Msg_Type"] != 9 and play["Event_Msg_Type"] != 8 and play["Event_Msg_Type"] != 6:
                 heatCheck = False
             elif playClock != play["PC_Time"]:
                 heatCheck = False
@@ -257,16 +257,16 @@ for game,group in playFile.groupby("Game_id"):
 
             del roster[:], floor[:]
 
-        if play["Event_Num"] == 43 and game == "03ac65b9a32fde1e201bfb427f6e41e4":
-            print(roster[7].id)
-            print(roster[7].team)
-            print(roster[7].pointsFor)
-            print(roster[7].offPos)
-            print(roster[7].pointsAgainst)
-            print(roster[7].defPos)
+        if play["Event_Num"] == 294 and game == "03ac65b9a32fde1e201bfb427f6e41e4":
+            print(roster[23].id)
+            print(roster[23].team)
+            print(roster[23].pointsFor)
+            print(roster[23].offPos)
+            print(roster[23].pointsAgainst)
+            print(roster[23].defPos)
 
 
-            exit(0)
+            #exit(0)
 
 
         #elif play["Event_Msg_Type"] == 12 or play["Event_Msg_Type"] == 10 or play["Event_Msg_Type"] == 7 or play["Event_Msg_Type"] == 9 or play["Event_Msg_Type"] == 20 or play["Event_Msg_Type"] == 18 or play["Event_Msg_Type"] == 13:
