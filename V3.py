@@ -55,7 +55,7 @@ def possessionOnly(offensiveTeam):
 
 
 # Creates a new .csv file and puts it in csv writer mode.
-answer = open("answer.csv", "w")
+answer = open("try.csv", "w")
 output = csv.writer(answer)
 
 # Writes the column headers in the answer file in .csv format
