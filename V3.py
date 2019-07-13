@@ -89,12 +89,14 @@ heldSubs = []
 heatCheck = False
 extraPoss = False
 playClock = None
-teamShot = None
+
 
 # This is the main outer loop grouping all the plays by game.
 for game,group in playFile.groupby("Game_id"):
 # Sort the game on the basis of the world clock time first, and then on event number. This gives the true ordering for the game.
     sortedGameData = group.sort_values(by=["Period","PC_Time","WC_Time","Event_Num"], ascending=[True,False,True,True])
+
+    sortedGameData = sortedGameData.reset_index(drop=True)
 
 # Whenever a new game begins, we must fill the roster list, as well as the floor list. To do this, we go into the lineup data and get the group that has the correct Game_id, and has a period of zero.
     GameLineBeginning = lineup.get_group((game,0))
@@ -119,18 +121,6 @@ for game,group in playFile.groupby("Game_id"):
             else:
                 extraPoss = True
 
-# This statement only executed when the previous play is a rebound, but not by a player on the floor. It is a team rebound, and we can verify the team since on the following play, the "Team_id" will be who got the previous rebound.
-        if needToCheck:
-            if play["Team_id"] != teamShot:
-                possessionOnly(teamShot)
-                if heldSubs:
-                    for spot, bench in heldSubs:
-                        if floor[spot].team == teamShot:
-                            floor[spot].offPos -= 1
-                        else:
-                            floor[spot].defPos -= 1
-            teamShot = None
-            needToCheck = False
 
 # This statement will only execute in the case that "subFreeze" has been set to true, meaning that in one of the most recent plays, there has been a foul called. If this has happened, but the current play is not a free throw, "3", or a substitution, "8", then the freeze is unnecessary, since there is no reason to put off the substitution. So we make the freeze equal to false, and execute any substitutions that were saved in the "heldSubs" list.
         if subFreeze and play["Event_Msg_Type"] not in freeThrowHold:
@@ -152,9 +142,33 @@ for game,group in playFile.groupby("Game_id"):
             heatCheck = True
             playClock = play["PC_Time"]
 
-# If the short has been missed, we set the variable "teamShot" to the team that took the shot. Since every missed shot is followed by a rebound, we must check on the rebound play if it was an offensive or defensive rebound.
+# If the short has been missed, we set the variable "play["Team_id"]" to the team that took the shot. Since every missed shot is followed by a rebound, we must check on the rebound play if it was an offensive or defensive rebound.
         elif play["Event_Msg_Type"] == 2:
-            teamShot = play["Team_id"]
+            rebounder = None
+            for candidate in floor:
+                if candidate.id == sortedGameData.loc[index+1]["Person1"]:
+                    rebounder = candidate
+                    break
+
+            if rebounder is None:
+                if sortedGameData.loc[index+2]["Team_id"] != play["Team_id"]:
+                    possessionOnly(play["Team_id"])
+                    if heldSubs:
+                        for spot, bench in heldSubs:
+                            if floor[spot].team == play["Team_id"]:
+                                floor[spot].offPos -= 1
+                            else:
+                                floor[spot].defPos -= 1
+
+# If the team of the rebounder is different then "play["Team_id"]", then the opposing team to the shooting team got the rebound. This results in a possession change, but since no points were scored, we only add the appropriate offensive or defensive possessions to the players on the floor. If the rebounder's team is the same as "play["Team_id"]", then this was an offensive rebound, so we can ignore it since no possession changes, and no points were scored.
+            elif rebounder.team != play["Team_id"]:
+                possessionOnly(play["Team_id"])
+                if heldSubs:
+                    for spot, bench in heldSubs:
+                        if bench.team == play["Team_id"]:
+                            bench.offPos -= 1
+                        else:
+                            bench.defPos -= 1
 
 # An Event_Msg_Type of "3" is a free throw which has a few different types.
         elif play["Event_Msg_Type"] == 3:
@@ -165,12 +179,50 @@ for game,group in playFile.groupby("Game_id"):
                     heatCheck = True
                     playClock = play["PC_Time"]
                 else:
-                    for player in floor:
-                        if player.team == play["Team_id"]:
-                            player.offPos -= 1
-                        else:
-                            player.defPos -= 1
-                    teamShot = play["Team_id"]
+
+
+                    if heldSubs:
+                        for player in floor:
+                            for spot,bench in heldSubs:
+                                if player == bench:
+                                    continue
+                                elif player.team == play["Team_id"]:
+                                    player.offPos -= 1
+                                else:
+                                    player.defPos -= 1
+
+                            floor[spot] = bench
+                        del heldSubs[:]
+
+                    subFreeze = False
+
+
+                    rebounder = None
+                    for candidate in floor:
+                        if candidate.id == sortedGameData.loc[index+1]["Person1"]:
+                            rebounder = candidate
+                            break
+
+                    if rebounder is None:
+                        if sortedGameData.loc[index+2]["Team_id"] != play["Team_id"]:
+                            possessionOnly(play["Team_id"])
+                            if heldSubs:
+                                for spot, bench in heldSubs:
+                                    if floor[spot].team == play["Team_id"]:
+                                        floor[spot].offPos -= 1
+                                    else:
+                                        floor[spot].defPos -= 1
+
+                    elif rebounder.team != play["Team_id"]:
+                        possessionOnly(play["Team_id"])
+                        """
+                        if heldSubs:
+                            for spot, bench in heldSubs:
+                                if bench.team == play["Team_id"]:
+                                    bench.offPos -= 1
+                                else:
+                                    bench.defPos -= 1
+                        """
 # This group will only add points and no possessions since no possession change is possible when there are no rebounds. We must put the "if play["Option1"]" statement inside of the outer if statement because if the free throw is missed, nothing happens to any players points or possessions. If it was on the outside condition, like on the free throws with rebounds in the next "elif", then execution would fall to the "else" statement at the end, and would unnecessarily keep track of the team who shot the free throw.
             elif play["Action_Type"] in freeThrowActionsNoRebound:
                 if play["Option1"] == 1:
@@ -187,32 +239,38 @@ for game,group in playFile.groupby("Game_id"):
                         else:
                             floor[spot].defPos -= 1
 
-# If all other cases are false, then the only possible thing that could have happened was a missed free throw, that had a possible rebound. If this is the case, we must set the "teamShot" variable to the free throw shooting team, and look to the next play which will be a rebound.
+# If all other cases are false, then the only possible thing that could have happened was a missed free throw, that had a possible rebound. If this is the case, we must set the "play["Team_id"]" variable to the free throw shooting team, and look to the next play which will be a rebound.
             else:
-                teamShot = play["Team_id"]
-
-# This is a rebound, so we must check the teamShot variable to see who shot the last shot, and compare it to the team of the player who rebounded the ball.
-        elif play["Event_Msg_Type"] == 4 and teamShot:
-# Create a variable called rebounder, which will store the value of the player who rebounded the prior missed shot. We go through all players on the floor to find this player.
-            rebounder = None
-            for candidate in floor:
-                if candidate.id == play["Person1"]:
-                    rebounder = candidate
-                    break
-# After the loop completes, if rebounder is still "None", then this is the case of a team rebound, which must be handled separately. We set the variable "needToCheck" equal to true, which will bring us into an "if" statement on the next loop, and will verify the rebounding team.
-            if rebounder is None:
-                needToCheck = True
-
-# If the team of the rebounder is different then "teamShot", then the opposing team to the shooting team got the rebound. This results in a possession change, but since no points were scored, we only add the appropriate offensive or defensive possessions to the players on the floor. If the rebounder's team is the same as "teamShot", then this was an offensive rebound, so we can ignore it since no possession changes, and no points were scored.
-            elif rebounder.team != teamShot:
-                possessionOnly(teamShot)
+                subFreeze = False
                 if heldSubs:
-                    for spot, bench in heldSubs:
-                        if bench.team == teamShot:
-                            bench.offPos -= 1
-                        else:
-                            bench.defPos -= 1
-                teamShot = None
+                    for spot,bench in heldSubs:
+                        floor[spot] = bench
+                    del heldSubs[:]
+
+                rebounder = None
+                for candidate in floor:
+                    if candidate.id == sortedGameData.loc[index+1]["Person1"]:
+                        rebounder = candidate
+                        break
+
+                if rebounder is None:
+                    if sortedGameData.loc[index+2]["Team_id"] != play["Team_id"]:
+                        possessionOnly(play["Team_id"])
+                        if heldSubs:
+                            for spot, bench in heldSubs:
+                                if floor[spot].team == play["Team_id"]:
+                                    floor[spot].offPos -= 1
+                                else:
+                                    floor[spot].defPos -= 1
+
+                elif rebounder.team != play["Team_id"]:
+                    possessionOnly(play["Team_id"])
+                    if heldSubs:
+                        for spot, bench in heldSubs:
+                            if bench.team == play["Team_id"]:
+                                bench.offPos -= 1
+                            else:
+                                bench.defPos -= 1
 
 # If the Event_Msg_Type is a "5", this is a turnover. Therefore, we just add the appropriate possessions to the players on the floor, and no points. Offensive possessions are given to the team that committed the turnover.
         elif play["Event_Msg_Type"] == 5:
@@ -258,15 +316,14 @@ for game,group in playFile.groupby("Game_id"):
 
             del roster[:], floor[:]
 
-        if play["Event_Num"] == 646 and game == "03ac65b9a32fde1e201bfb427f6e41e4":
-            print(sortedGameData.loc[index]["PC_Time"])
-            print(index)
-            print(roster[15].id)
-            print(roster[15].team)
-            print(roster[15].pointsFor)
-            print(roster[15].offPos)
-            print(roster[15].pointsAgainst)
-            print(roster[15].defPos)
+        if play["Event_Num"] == 544 and game == "006728e4c10e957011e1f24878e6054a":
+
+            print(roster[12].id)
+            print(roster[12].team)
+            print(roster[12].pointsFor)
+            print(roster[12].offPos)
+            print(roster[12].pointsAgainst)
+            print(roster[12].defPos)
 
 
             #exit(0)
