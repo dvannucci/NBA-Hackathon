@@ -77,7 +77,7 @@ floor = []
 freeThrowActionsNoRebound = [11,13,14,16,17,18,19,20,21,22,25,26,27,28,29]
 freeThrowActionsRebound = [12,15]
 
-freeThrowHold = [3,7,8,9,11,14,15,18,20]
+freeThrowHold = [3,4,7,8,9,11,14,15,18,20]
 
 # This is a boolean variable, which will be used in the occasional case when on a rebound play, we are not told who has secured the rebound. When this happens, whatever the team is of the next play following, that is the team that secured the previous plays rebound. So when this is set to "True", we will verify the team. It must originally be set to "false".
 needToCheck = False
@@ -316,14 +316,14 @@ for game,group in playFile.groupby("Game_id"):
 
             del roster[:], floor[:]
 
-        if play["Event_Num"] == 544 and game == "006728e4c10e957011e1f24878e6054a":
+        if play["Event_Num"] == 556 and game == "03ac65b9a32fde1e201bfb427f6e41e4":
 
-            print(roster[12].id)
-            print(roster[12].team)
-            print(roster[12].pointsFor)
-            print(roster[12].offPos)
-            print(roster[12].pointsAgainst)
-            print(roster[12].defPos)
+            print(roster[20].id)
+            print(roster[20].team)
+            print(roster[20].pointsFor)
+            print(roster[20].offPos)
+            print(roster[20].pointsAgainst)
+            print(roster[20].defPos)
 
 
             #exit(0)
