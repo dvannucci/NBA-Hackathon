@@ -98,6 +98,7 @@ extraPoss = False
 playClock = None
 foulClock = None
 stop = False
+time = False
 
 
 # This is the main outer loop grouping all the plays by game.
@@ -119,13 +120,15 @@ for game,group in playFile.groupby("Game_id"):
 # Now that the roster and floor lists are filled, we go through each play of the game.
     for index,play in sortedGameData.iterrows():
 
-        if heatCheck and play["Event_Msg_Type"] in actionPlays:
-            heatCheck = False
+        if time:
+            if play["PC_Time"] != reboundTime:
+                time = False
 
 
 # This statement will only execute in the case that "subFreeze" has been set to true, meaning that in one of the most recent plays, there has been a foul called. If this has happened, but the current play is not a free throw, "3", or a substitution, "8", then the freeze is unnecessary, since there is no reason to put off the substitution. So we make the freeze equal to false, and execute any substitutions that were saved in the "heldSubs" list.
-        if subFreeze and play["Event_Msg_Type"] not in freeThrowHold:
-            subFreeze = False
+        #if subFreeze and play["Event_Msg_Type"] not in freeThrowHold:
+        if foulClock != play["PC_Time"]:
+            #subFreeze = False
             if heldSubs:
                 for spot,bench in heldSubs:
                     floor[spot] = bench
@@ -140,11 +143,12 @@ for game,group in playFile.groupby("Game_id"):
 # If the Event_Msg_Type is a "1", then it's a made shot, which is the end of a possession. For every player on the floor, depending on their team, call the function to add to their offensive or defensive stats.
         elif play["Event_Msg_Type"] == 1:
             pointsAndPossession(play["Option1"])
-            heatCheck = True
+            shotTime = play["PC_Time"]
             playClock = play["PC_Time"]
 
 # If the short has been missed, we set the variable "play["Team_id"]" to the team that took the shot. Since every missed shot is followed by a rebound, we must check on the rebound play if it was an offensive or defensive rebound.
         elif play["Event_Msg_Type"] == 2:
+            reboundTime = sortedGameData.loc[index+1]["PC_Time"]
 
             rebounder = None
             for candidate in floor:
@@ -154,19 +158,12 @@ for game,group in playFile.groupby("Game_id"):
 
             if rebounder is None:
                 if sortedGameData.loc[index+2]["Team_id"] != play["Team_id"]:
-                    foulClock = sortedGameData.loc[index+1]["PC_Time"]
+                    #foulClock = sortedGameData.loc[index+1]["PC_Time"]
                     possessionOnly(play["Team_id"])
-                    """
-                    if heldSubs:
-                        for spot, bench in heldSubs:
-                            if floor[spot].team == play["Team_id"]:
-                                floor[spot].offPos -= 1
-                            else:
-                                floor[spot].defPos -= 1
-                    """
+
 # If the team of the rebounder is different then "play["Team_id"]", then the opposing team to the shooting team got the rebound. This results in a possession change, but since no points were scored, we only add the appropriate offensive or defensive possessions to the players on the floor. If the rebounder's team is the same as "play["Team_id"]", then this was an offensive rebound, so we can ignore it since no possession changes, and no points were scored.
             elif rebounder.team != play["Team_id"]:
-                foulClock = sortedGameData.loc[index+1]["PC_Time"]
+                #foulClock = sortedGameData.loc[index+1]["PC_Time"]
                 possessionOnly(play["Team_id"])
                 if heldSubs:
                     for spot, bench in heldSubs:
@@ -179,12 +176,12 @@ for game,group in playFile.groupby("Game_id"):
         elif play["Event_Msg_Type"] == 3:
 # Stand alone special case: If Action_Type is "10", and the Option1 is "1", then this was a made "and one" free throw, so we add the stats to the players on the court, but we do not add a possession since it was already added on the made shot since this is an "and one". We also set "subFreeze" to false, since it may be true at this time, but now since the final free throw of the possession has been made, the new players can come onto the floor now
             if play["Action_Type"] == 10:
-                stop = False
+                #stop = False
                 if play["Option1"] == 1:
                     pointsAndPossession(play["Option1"])
                     playClock = play["PC_Time"]
                 else:
-                    subFreeze = False
+                    #subFreeze = False
                     if heldSubs:
                         for spot,bench in heldSubs:
                             if floor[spot].team == play["Team_id"]:
@@ -204,32 +201,18 @@ for game,group in playFile.groupby("Game_id"):
                     if rebounder is None:
                         if sortedGameData.loc[index+2]["Team_id"] != play["Team_id"]:
                             possessionOnly(play["Team_id"])
-                            """
-                            if heldSubs:
-                                for spot, bench in heldSubs:
-                                    if floor[spot].team == play["Team_id"]:
-                                        floor[spot].offPos -= 1
-                                    else:
-                                        floor[spot].defPos -= 1
-                            """
+
 
                     elif rebounder.team != play["Team_id"]:
                         possessionOnly(play["Team_id"])
-                        """
-                        if heldSubs:
-                            for spot, bench in heldSubs:
-                                if bench.team == play["Team_id"]:
-                                    bench.offPos -= 1
-                                else:
-                                    bench.defPos -= 1
-                        """
+
 # This group will only add points and no possessions since no possession change is possible when there are no rebounds. We must put the "if play["Option1"]" statement inside of the outer if statement because if the free throw is missed, nothing happens to any players points or possessions. If it was on the outside condition, like on the free throws with rebounds in the next "elif", then execution would fall to the "else" statement at the end, and would unnecessarily keep track of the team who shot the free throw.
             elif play["Action_Type"] in freeThrowActionsNoRebound:
                 if play["Option1"] == 1:
                     pointsOnly(play["Option1"] , play["Person1"] )
 # This group will add points and possessions if the free throw is made, since rebounds were possible.
             elif play["Action_Type"] in freeThrowActionsRebound and play["Option1"] == 1:
-                stop = False
+                #stop = False
                 playClock = play["PC_Time"]
                 pointsAndPossession(play["Option1"])
                 if heldSubs:
@@ -241,8 +224,8 @@ for game,group in playFile.groupby("Game_id"):
 
 # If all other cases are false, then the only possible thing that could have happened was a missed free throw, that had a possible rebound. If this is the case, we must set the "play["Team_id"]" variable to the free throw shooting team, and look to the next play which will be a rebound.
             else:
-                stop = False
-                subFreeze = False
+                #stop = False
+                #subFreeze = False
                 if heldSubs:
                     for spot,bench in heldSubs:
                         floor[spot] = bench
@@ -280,16 +263,17 @@ for game,group in playFile.groupby("Game_id"):
 
 # If a foul is committed on a play,then we must freeze all substitutions for the time being. If any substitutions are made during free throws, then we must wait until after the free throws go through to before making the substitutions.
         elif play["Event_Msg_Type"] == 6:
-            subFreeze = True
-            if playClock == play["PC_Time"] and heatCheck:
-                stop = True
+            #subFreeze = True
+            foulClock = play["PC_Time"]
+            if shotTime == play["PC_Time"]:
+                #stop = True
                 #print(play["Event_Num"])
                 for player in floor:
                     if player.team == sortedGameData.loc[index-1]["Team_id"]:
                         player.offPos -= 1
                     else:
                         player.defPos -= 1
-#sortedGameData.loc[index-1]["Event_Msg_Type"] == 1 and
+
 
 # If the Event_Msg_Type is an "8", this is a substitution. Person1 is leaving the game, Person2 is entering the game.
         elif play["Event_Msg_Type"] == 8:
@@ -298,7 +282,7 @@ for game,group in playFile.groupby("Game_id"):
             for sub in floor:
                 if sub.id == play["Person1"]:
                     spot = floor.index(sub)
-                    if playClock != play["PC_Time"] and not stop:
+                    if playClock != play["PC_Time"] and shotTime != play["PC_Time"] and not time:
                         if sub.team == play["Team_id"]:
                             sub.offPos += 1
                         else:
@@ -312,12 +296,17 @@ for game,group in playFile.groupby("Game_id"):
                     """
                     for bench in roster:
                         if bench.id == play["Person2"]:
-                            if subFreeze:
+                            if foulClock == play["PC_Time"]:
                                 heldSubs.append([spot,bench])
                             else:
                                 floor[spot] = bench
                             break
                     break
+
+        elif play["Event_Msg_Type"] == 9:
+            if play["PC_Time"] == reboundTime:
+                time = True
+
 
         elif play["Event_Msg_Type"] == 13:
             possessionOnly(play["Team_id"])
@@ -333,14 +322,14 @@ for game,group in playFile.groupby("Game_id"):
 
             del roster[:], floor[:]
 
-        if play["Event_Num"] == 254 and game == "096e231adad0be6ab1cc89cce56847f8":
+        if play["Event_Num"] == 473 and game == "03ac65b9a32fde1e201bfb427f6e41e4":
 
-            print(roster[1].id)
-            print(roster[1].team)
-            print(roster[1].pointsFor)
-            print(roster[1].offPos)
-            print(roster[1].pointsAgainst)
-            print(roster[1].defPos)
+            print(roster[6].id)
+            print(roster[6].team)
+            print(roster[6].pointsFor)
+            print(roster[6].offPos)
+            print(roster[6].pointsAgainst)
+            print(roster[6].defPos)
 
 
             #exit(0)
@@ -350,6 +339,7 @@ for game,group in playFile.groupby("Game_id"):
             #continue
 
         else:
-            subFreeze = True
+            continue
+            #subFreeze = True
             #print(play)
             #exit(0)
