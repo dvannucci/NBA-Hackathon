@@ -99,7 +99,8 @@ playClock = None
 foulClock = None
 stop = False
 time = False
-
+teamTimeout = None
+offenseReboundingTeam = None
 
 # This is the main outer loop grouping all the plays by game.
 for game,group in playFile.groupby("Game_id"):
@@ -158,11 +159,15 @@ for game,group in playFile.groupby("Game_id"):
 
             if rebounder is None:
                 if sortedGameData.loc[index+2]["Team_id"] != play["Team_id"]:
+                    offenseReboundingTeam = False
                     #foulClock = sortedGameData.loc[index+1]["PC_Time"]
                     possessionOnly(play["Team_id"])
+                else:
+                    offenseReboundingTeam = True
 
 # If the team of the rebounder is different then "play["Team_id"]", then the opposing team to the shooting team got the rebound. This results in a possession change, but since no points were scored, we only add the appropriate offensive or defensive possessions to the players on the floor. If the rebounder's team is the same as "play["Team_id"]", then this was an offensive rebound, so we can ignore it since no possession changes, and no points were scored.
             elif rebounder.team != play["Team_id"]:
+                offenseReboundingTeam = False
                 #foulClock = sortedGameData.loc[index+1]["PC_Time"]
                 possessionOnly(play["Team_id"])
                 if heldSubs:
@@ -171,6 +176,9 @@ for game,group in playFile.groupby("Game_id"):
                             bench.offPos -= 1
                         else:
                             bench.defPos -= 1
+
+            else:
+                offenseReboundingTeam = True
 
 # An Event_Msg_Type of "3" is a free throw which has a few different types.
         elif play["Event_Msg_Type"] == 3:
@@ -304,8 +312,11 @@ for game,group in playFile.groupby("Game_id"):
                     break
 
         elif play["Event_Msg_Type"] == 9:
+            #teamTimeout = play["Team_id"]
             if play["PC_Time"] == reboundTime:
                 time = True
+                if offenseReboundingTeam:
+                    time = False
 
 
         elif play["Event_Msg_Type"] == 13:
