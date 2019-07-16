@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import csv
+from decimal import Decimal, ROUND_UP
 
 class Player:
     def __init__(self, team, id):
@@ -103,6 +104,8 @@ teamTimeout = None
 offenseReboundingTeam = None
 reboundTime = None
 follow = False
+turnoverClock = None
+turnover = False
 
 # This is the main outer loop grouping all the plays by game.
 for game,group in playFile.groupby("Game_id"):
@@ -125,6 +128,9 @@ for game,group in playFile.groupby("Game_id"):
 
         if reboundTime != play["PC_Time"] and follow:
             follow = False
+
+        if turnoverClock != play["PC_Time"] and turnover:
+            turnover = False
 
         if time:
             if play["PC_Time"] != reboundTime:
@@ -294,8 +300,9 @@ for game,group in playFile.groupby("Game_id"):
 
 # If the Event_Msg_Type is a "5", this is a turnover. Therefore, we just add the appropriate possessions to the players on the floor, and no points. Offensive possessions are given to the team that committed the turnover.
         elif play["Event_Msg_Type"] == 5:
+            teamTurnover = play["Team_id"]
             possessionOnly(play["Team_id"])
-            playClock = play["PC_Time"]
+            turnoverClock = play["PC_Time"]
 
 # If a foul is committed on a play,then we must freeze all substitutions for the time being. If any substitutions are made during free throws, then we must wait until after the free throws go through to before making the substitutions.
         elif play["Event_Msg_Type"] == 6:
@@ -309,6 +316,8 @@ for game,group in playFile.groupby("Game_id"):
                         player.offPos -= 1
                     else:
                         player.defPos -= 1
+            if play["PC_Time"] == turnoverClock and teamTurnover != play["Team_id"]:
+                turnover = True
 
 
 # If the Event_Msg_Type is an "8", this is a substitution. Person1 is leaving the game, Person2 is entering the game.
@@ -318,12 +327,27 @@ for game,group in playFile.groupby("Game_id"):
             for sub in floor:
                 if sub.id == play["Person1"]:
                     spot = floor.index(sub)
-                    if playClock != play["PC_Time"] and shotTime != play["PC_Time"] and not time:
+                    if playClock != play["PC_Time"] and shotTime != play["PC_Time"] and turnoverClock != play["PC_Time"] and not time:
                         #print(play["Event_Num"])
                         if sub.team == play["Team_id"]:
                             sub.offPos += 1
                         else:
                             sub.defPos += 1
+                    elif turnover:
+                        if sub.team == teamTurnover:
+                            sub.defPos += 1
+                        else:
+                            sub.offPos += 1
+                    """
+                    elif turnoverClock == foulClock and turnoverClock == play["PC_Time"] and foulClock == play["PC_Time"] and sortedGameData.loc[index-1]["Event_Msg_Type"] != 5:
+                        if play["Event_Num"] == 482 and game == "096e231adad0be6ab1cc89cce56847f8":
+                            print("yeeete")
+                        if sub.team == play["Team_id"]:
+                            sub.offPos += 1
+                        else:
+                            sub.defPos += 1
+                    """
+
                     """
                     elif subFreeze == True and foulClock == play["PC_Time"]:
                         if sub.team == play["Team_id"]:
@@ -365,22 +389,23 @@ for game,group in playFile.groupby("Game_id"):
                     output.writerow([play["Game_id"], player.id, "N/A", "N/A"])
 
                 else:
+                    if player.id == "7a1c1f680a11456d505f05fa70712213" :
+                        print(100 *(player.pointsAgainst/player.defPos))
+                        check = Decimal(str(100 *(player.pointsAgainst/player.defPos))).quantize(Decimal('.1'), rounding=ROUND_UP)
+                        print(check)
                     output.writerow([play["Game_id"], player.id, round(100 *(player.pointsFor/player.offPos),1), round(100 *(player.pointsAgainst/player.defPos),1)])
 
             del roster[:], floor[:]
 
-        if play["Event_Num"] == 352 and game == "117a5a71c34c2d8a39ff66d884462bd7":
-            print(follow)
-            print(reboundTime)
-            print(play["PC_Time"])
-            print(teamShot)
+        if play["Event_Num"] == 581 and game == "117a5a71c34c2d8a39ff66d884462bd7":
 
-            print(roster[20].id)
-            print(roster[20].team)
-            print(roster[20].pointsFor)
-            print(roster[20].offPos)
-            print(roster[20].pointsAgainst)
-            print(roster[20].defPos)
+
+            print(roster[3].id)
+            print(roster[3].team)
+            print(roster[3].pointsFor)
+            print(roster[3].offPos)
+            print(roster[3].pointsAgainst)
+            print(roster[3].defPos)
 
 
             #exit(0)
