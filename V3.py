@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import csv
 from decimal import Decimal, ROUND_UP
+import math
 
 class Player:
     def __init__(self, team, id):
@@ -395,23 +396,37 @@ for game,group in playFile.groupby("Game_id"):
                     output.writerow([play["Game_id"], player.id, "N/A", "N/A"])
 
                 else:
-                    if player.id == "7a1c1f680a11456d505f05fa70712213" :
+                    if player.id == "7a1c1f680a11456d505f05fa70712213":
+                        print( round(100*player.pointsAgainst/player.defPos,1) )
+
+                        sauce = round(100*player.pointsAgainst/player.defPos,1)
+                        stuff = round(100*player.pointsFor/player.offPos,1)
+
+                        multiplier = 10
+                        print(  math.floor( sauce*10 + 0.5)/10  )
+                        print(round(100*(player.pointsAgainst/player.defPos),1))
                         print(100 *(player.pointsAgainst/player.defPos))
                         check = Decimal(str(100 *(player.pointsAgainst/player.defPos))).quantize(Decimal('.1'), rounding=ROUND_UP)
                         print(check)
-                    output.writerow([play["Game_id"], player.id, round(100 *(player.pointsFor/player.offPos),1), round(100 *(player.pointsAgainst/player.defPos),1)])
+                    sauce = 100*(player.pointsAgainst/player.defPos)
+                    stuff = 100*(player.pointsFor/player.offPos)
+                    output.writerow([play["Game_id"], player.id, math.floor( stuff*10 + 0.5)/10, math.floor( sauce*10 + 0.5)/10])
 
             del roster[:], floor[:]
 
-        if play["Event_Num"] == 212 and game == "117a5a71c34c2d8a39ff66d884462bd7":
+        if play["Event_Num"] == 701 and game == "117a5a71c34c2d8a39ff66d884462bd7":
 
+            sauce = 100*(roster[7].pointsFor/roster[7].offPos)
+            check = Decimal(str(100 *(player.pointsAgainst/player.defPos))).quantize(Decimal('.1'), rounding=ROUND_UP)
+            print(sauce)
+            print(  math.floor( sauce*10 + 0.5)/10  )
 
-            print(roster[4].id)
-            print(roster[4].team)
-            print(roster[4].pointsFor)
-            print(roster[4].offPos)
-            print(roster[4].pointsAgainst)
-            print(roster[4].defPos)
+            print(roster[7].id)
+            print(roster[7].team)
+            print(roster[7].pointsFor)
+            print(roster[7].offPos)
+            print(roster[7].pointsAgainst)
+            print(roster[7].defPos)
 
 
             #exit(0)
