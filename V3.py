@@ -338,6 +338,12 @@ for game,group in playFile.groupby("Game_id"):
                             sub.defPos += 1
                         else:
                             sub.offPos += 1
+
+                    if reboundTime == play["PC_Time"] and follow:
+                        if sub.team == teamShot:
+                            sub.offPos -= 1
+                        else:
+                            sub.defPos -= 1
                     """
                     elif turnoverClock == foulClock and turnoverClock == play["PC_Time"] and foulClock == play["PC_Time"] and sortedGameData.loc[index-1]["Event_Msg_Type"] != 5:
                         if play["Event_Num"] == 482 and game == "096e231adad0be6ab1cc89cce56847f8":
@@ -397,15 +403,15 @@ for game,group in playFile.groupby("Game_id"):
 
             del roster[:], floor[:]
 
-        if play["Event_Num"] == 581 and game == "117a5a71c34c2d8a39ff66d884462bd7":
+        if play["Event_Num"] == 212 and game == "117a5a71c34c2d8a39ff66d884462bd7":
 
 
-            print(roster[3].id)
-            print(roster[3].team)
-            print(roster[3].pointsFor)
-            print(roster[3].offPos)
-            print(roster[3].pointsAgainst)
-            print(roster[3].defPos)
+            print(roster[4].id)
+            print(roster[4].team)
+            print(roster[4].pointsFor)
+            print(roster[4].offPos)
+            print(roster[4].pointsAgainst)
+            print(roster[4].defPos)
 
 
             #exit(0)
