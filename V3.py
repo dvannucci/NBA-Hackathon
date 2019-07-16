@@ -1,9 +1,9 @@
 import pandas as pd
-import numpy as np
 import csv
 from decimal import Decimal, ROUND_UP
 import math
 
+# This is the player object used to track every player's statistics.
 class Player:
     def __init__(self, team, id):
         self.team = team
@@ -33,7 +33,7 @@ class Player:
     def defensivePossession(self):
         self.defPos += 1
 
-
+# The following three functions are helper functions to add points and/or possesions to the appropraite players and teams.
 def pointsAndPossession(points):
     for player in floor:
         if player.team == play["Team_id"]:
@@ -62,7 +62,7 @@ def possessionOnly(offensiveTeam):
 
 
 # Creates a new .csv file and puts it in csv writer mode.
-answer = open("try.csv", "w")
+answer = open("Team_Vancouver_Q1_BBALL.csv", "w")
 output = csv.writer(answer)
 
 # Writes the column headers in the answer file in .csv format
@@ -83,8 +83,6 @@ floor = []
 # These two lists will be used in the case of free throws. There are many different types of free throws, but we can split all but one of them into two distinct groups. The separator being whether they are reboundable or not.
 freeThrowActionsNoRebound = [11,13,14,16,17,18,19,20,21,22,25,26,27,28,29]
 freeThrowActionsRebound = [12,15]
-
-freeThrowHold = [3,4,7,8,9,11,14,15,18,20]
 
 actionPlays = [1,2,3,5,12,13]
 
@@ -403,30 +401,30 @@ for game,group in playFile.groupby("Game_id"):
                         stuff = round(100*player.pointsFor/player.offPos,1)
 
                         multiplier = 10
-                        print(  math.floor( sauce*10 + 0.5)/10  )
-                        print(round(100*(player.pointsAgainst/player.defPos),1))
-                        print(100 *(player.pointsAgainst/player.defPos))
+                        #print(  math.floor( sauce*10 + 0.5)/10  )
+                        #print(round(100*(player.pointsAgainst/player.defPos),1))
+                        #print(100 *(player.pointsAgainst/player.defPos))
                         check = Decimal(str(100 *(player.pointsAgainst/player.defPos))).quantize(Decimal('.1'), rounding=ROUND_UP)
-                        print(check)
-                    sauce = 100*(player.pointsAgainst/player.defPos)
+                        #print(check)
+                    sauce = round(100*player.pointsAgainst/player.defPos,1)
                     stuff = 100*(player.pointsFor/player.offPos)
                     output.writerow([play["Game_id"], player.id, math.floor( stuff*10 + 0.5)/10, math.floor( sauce*10 + 0.5)/10])
 
             del roster[:], floor[:]
 
-        if play["Event_Num"] == 701 and game == "117a5a71c34c2d8a39ff66d884462bd7":
+        if play["Event_Num"] == 689 and game == "03ac65b9a32fde1e201bfb427f6e41e4":
 
             sauce = 100*(roster[7].pointsFor/roster[7].offPos)
             check = Decimal(str(100 *(player.pointsAgainst/player.defPos))).quantize(Decimal('.1'), rounding=ROUND_UP)
-            print(sauce)
-            print(  math.floor( sauce*10 + 0.5)/10  )
+            #print(sauce)
+            #print(  math.floor( sauce*10 + 0.5)/10  )
 
-            print(roster[7].id)
-            print(roster[7].team)
-            print(roster[7].pointsFor)
-            print(roster[7].offPos)
-            print(roster[7].pointsAgainst)
-            print(roster[7].defPos)
+            print(roster[20].id)
+            print(roster[20].team)
+            print(roster[20].pointsFor)
+            print(roster[20].offPos)
+            print(roster[20].pointsAgainst)
+            print(roster[20].defPos)
 
 
             #exit(0)
